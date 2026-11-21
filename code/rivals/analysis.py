@@ -150,15 +150,17 @@ def gap_analysis(menus: pd.DataFrame) -> pd.DataFrame:
     labels = {"left_only": "only us", "right_only": "only them", "both": "both"}
     merged["where"] = merged["_merge"].astype(str).map(labels)
 
-    sellers = {}
-    for (canonical, kind), group in theirs_rows.groupby(["canonical", "kind"]):
-        sellers[(canonical, kind)] = sorted(group["cafe"].unique())
-    keys = list(zip(merged["canonical"], merged["kind"]))
-    merged["rivals"] = [len(sellers.get(key, [])) for key in keys]
-    merged["sold_by"] = [", ".join(sellers.get(key, [])) for key in keys]
+    sellers = (theirs_rows.groupby(["canonical", "kind"], as_index=False)
+               .agg(rivals=("cafe", "nunique"),
+                    sold_by=("cafe", lambda cafes: ", ".join(sorted(cafes.unique())))))
+    merged = merged.merge(sellers, on=["canonical", "kind"], how="left")
+    merged["rivals"] = merged["rivals"].fillna(0).astype(int)
+    merged["sold_by"] = merged["sold_by"].fillna("")
 
     order = {"only them": 0, "only us": 1, "both": 2}
     result = merged.sort_values(
         ["where", "rivals", "canonical"], ascending=[True, False, True],
         key=lambda column: column.map(order) if column.name == "where" else column)
-    return result[["canonical", "kind", "where", "rivals", "sold_by"]].reset_index(drop=True)
+    return result[["canonical", "kind", "where", "rivals", "sold_by"]].reset_index(
+        drop=True
+    )

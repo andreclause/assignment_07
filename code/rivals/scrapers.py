@@ -92,7 +92,9 @@ def scrape_hilltop(page) -> list[dict]:
     for category, table in zip(categories, tables):
         table = table.drop(columns="Description")
         melted = table.melt(id_vars="Item", var_name="size", value_name="price")
-        for item, size, price in melted[["Item", "size", "price"]].itertuples(index=False):
+        for item, size, price in melted[["Item", "size", "price"]].itertuples(
+            index=False
+        ):
             if pd.isna(price):
                 continue
             rows.append({
