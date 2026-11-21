@@ -1,23 +1,25 @@
+
+1 Scrape · PY
 """
 1_Scrape.py — Part 1: scrape the rivals' menus into one dataset.
-
+ 
 The owner picks the cafés, clicks Scrape, and sees what came back: how much was
 scraped, every row in one table, and a download of the dataset.
-
+ 
 The scraping itself runs in a separate program (code/scrape_menus.py) that
 runner.py starts for you — Streamlit and Playwright do not share a process well.
 This page only asks for it and shows the result.
-
+ 
 Test it: pytest tests/test_pipeline.py -k scrape_page
 """
-
+ 
 import os
-
+ 
 import pandas as pd
 import streamlit as st
-
+ 
 from rivals import CAFES, MENUS_FILE, OUR_CAFE, run_scraper
-
+ 
 # --- The page: the algorithm, step by step ------------------------------------------
 #
 # Write the code for each step below its comment. The tests
@@ -31,6 +33,9 @@ from rivals import CAFES, MENUS_FILE, OUR_CAFE, run_scraper
 #    st.markdown: one sentence, e.g. "Pick the cafés to scrape. Each run replaces
 #    the saved dataset."
 #
+st.title("Salt City: Scrape the Rivals")
+st.markdown("Pick the cafés to scrape. Each run replaces the saved dataset.")
+ 
 # 2. PICK AND SCRAPE
 #    a. cafes <- st.multiselect labeled "Cafés", key "cafes", options list(CAFES),
 #       every café selected by default.
@@ -44,9 +49,27 @@ from rivals import CAFES, MENUS_FILE, OUR_CAFE, run_scraper
 #                                    st.code(the end of result.stderr) — the
 #                                    Python error, so you can fix it.
 #
+cafes = st.multiselect("Cafés", options=list(CAFES), default=list(CAFES), key="cafes")
+if st.button("Scrape", key="scrape"):
+    if not cafes:
+        st.warning("Pick at least one café to scrape.")
+    else:
+        with st.spinner("A browser is visiting each café — this takes a few seconds each..."):
+            result = run_scraper(cafes)
+        if result.returncode == 0:
+            output_lines = result.stdout.strip().splitlines()
+            st.success(output_lines[-1] if output_lines else "Scraping finished.")
+        else:
+            st.error("The scraper failed.")
+            st.code(result.stderr[-2000:])
+ 
 # 3. NOTHING TO SHOW YET?
 #    If MENUS_FILE does not exist: st.info("No menus yet — ...") and st.stop().
 #
+if not os.path.exists(MENUS_FILE):
+    st.info("No menus yet — pick the cafés above and click Scrape.")
+    st.stop()
+ 
 # 4. THE DATASET
 #    menus <- pd.read_csv(MENUS_FILE); theirs <- the rows whose cafe is not OUR_CAFE
 #    Three st.metric cards side by side (st.columns(3)), all about `theirs`:
@@ -55,3 +78,15 @@ from rivals import CAFES, MENUS_FILE, OUR_CAFE, run_scraper
 #    st.dataframe(menus, hide_index=True)
 #    st.download_button "Download the dataset" with menus.to_csv(index=False),
 #       file_name "menus.csv", mime "text/csv", key "download"
+menus = pd.read_csv(MENUS_FILE)
+theirs = menus[menus["cafe"] != OUR_CAFE]
+ 
+metric_cafes, metric_items, metric_rows = st.columns(3)
+metric_cafes.metric("Cafés", int(theirs["cafe"].nunique()))
+metric_items.metric("Items", len(theirs[["cafe", "item"]].drop_duplicates()))
+metric_rows.metric("Rows", len(theirs))
+ 
+st.dataframe(menus, hide_index=True)
+st.download_button("Download the dataset", menus.to_csv(index=False),
+                   file_name="menus.csv", mime="text/csv", key="download")
+ 

@@ -1,8 +1,12 @@
-Write your reflection here.
-
-See reflection.md for what makes a good reflection — be specific, use the
-terminology from this assignment (HTML element, CSS selector, class and id
-selectors, sibling selector, inner_text, attribute, headless browser, waiting for
-JavaScript, crawling, pagination, read_html, melt, fuzzy matching, normalization,
-threshold, human in the loop, merge indicator, gap analysis), and make it
-actionable.
+I’m confident in the pandas logic, which I ran against your docstring examples: in gap_analysis, the _merge column 
+from indicator=True is categorical, so it needed astype(str) before relabelling, and a key= function to sort “only 
+them” first. I’m less sure about the scrapers, which I couldn’t run. I used the sibling selector heading.query_sele
+ctor("~ div.menu-grid") from the docstring without confirming it works in Playwright against site/ (~ * would have 
+matched the note paragraph instead). I handled Canal’s pagination by counting cards, clicking “Show more”, and using
+ wait_for_function to wait for JavaScript to add more, and I waited on #sizes tbody tr rather than only #sizes, which
+  is my own judgment call. In Hilltop I paired #menu h2 headings with read_html tables by position using zip, which 
+  would break silently if a category lacked a table. For fuzzy matching, I only tested match_items with a stand-in 
+  scorer, so I haven’t seen how real token_sort_ratio scores sit against the 90 and 70 thresholds, and because the 
+  pool of names grows as the loop runs, the human-in-the-loop results depend on which café appears first. Next I’d 
+  run pytest tests/test_pipeline.py, confirm each selector with Inspect, run playwright codegen on the Canal page, 
+  and lower AUTO_MATCH to see which items drop into review.
